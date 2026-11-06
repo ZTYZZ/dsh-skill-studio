@@ -1,8 +1,8 @@
 # Skill Studio（技能工坊）
 
-**在对话里直接创建、读取、更新、列出和删除可复用的 Agent 技能。**
+**在对话里直接创建、安装、读取、更新、列出和删除可复用的 Agent 技能。**
 
-DeepSeek Harness 本来就会「用」技能：`skill` 工具负责加载，会话目录负责展示。Skill Studio 补上另一半——一套小而安全的创作接口，让 Agent 能「做」技能：写完、校验、迭代、退役，全程不离开会话。
+DeepSeek Harness 本来就会「用」技能：`skill` 工具负责加载，会话目录负责展示。Skill Studio 补上另一半——一套小而安全的创作接口，让 Agent 能「做」技能：写、装、校验、迭代、退役，全程不离开会话。
 
 思路和 Codex 的 skill-creator 一样，但技能就是磁盘上的普通 `SKILL.md` 包，由 Harness 自带的文件系统 provider 发现，并热更新到所有会话。
 
@@ -27,6 +27,7 @@ Agent：[加载 skill-creator]
 | `skill_list` | 列出技能目录中的全部技能，**包括解析失败的技能和诊断信息**——会话目录会静默隐藏坏技能，这里能查到原因。 |
 | `skill_read` | 读取某个技能的 frontmatter、正文和资源文件列表，或读取其中一个资源文件。 |
 | `skill_create` | 写入 `<技能目录>/<name>/SKILL.md`，可同时写入 `references/`、`scripts/`、`assets/` 文件；写入前做校验，默认拒绝覆盖。 |
+| `skill_install` | 从 GitHub tree/blob URL、`owner/repo/path`、raw `SKILL.md` URL 或本地目录安装现成技能，落盘前先校验。 |
 | `skill_update` | 局部更新技能。未传的字段、未知的 frontmatter 键、未列出的文件都会保留；资源可增、可换、可删。 |
 | `skill_delete` | 把技能移入 `<技能目录>/.trash`，而不是直接删除；`confirm` 必须与技能名完全一致。 |
 
@@ -66,7 +67,7 @@ skill_list
 → 0 skills in /Users/you/.dsh/skills
 ```
 
-五个工具和 `skill-creator` 目录项应当立即可见。
+六个工具和 `skill-creator` 目录项应当立即可见。
 
 ### 手动写入组合
 
@@ -91,6 +92,7 @@ skill_list
 - 「把这份检查清单做成可复用技能，描述要贴合我平时的说法。」
 - 「这个技能太长了，把 API 细节移到 reference 文件里。」
 - 「把刚才这套分镜流程沉淀成一个技能。」
+- 「从这个 GitHub 地址安装技能：https://github.com/ZTYZZ/dsh-skill-studio/tree/main/examples/release-notes」
 - 「删掉旧的 `weekly-report` 技能。」
 
 推荐流程：
@@ -100,6 +102,29 @@ skill_list
 3. `skill_create`——写「能跑通的最小技能」。
 4. `skill_list` / `skill_read`——确认有效，并回读渲染结果。
 5. `skill_update`——真跑一次后再迭代。
+
+### 安装现成技能
+
+`skill_install` 支持：
+
+| 来源 | 示例 |
+| --- | --- |
+| GitHub tree URL | `https://github.com/ZTYZZ/dsh-skill-studio/tree/main/examples/release-notes` |
+| GitHub blob URL | `https://github.com/ZTYZZ/dsh-skill-studio/blob/main/examples/release-notes/SKILL.md` |
+| 简写 | `ZTYZZ/dsh-skill-studio/examples/release-notes` |
+| 原始 `SKILL.md` | `https://raw.githubusercontent.com/.../SKILL.md` |
+| 本地路径 | `/Users/you/work/skills/release-notes`（含 `SKILL.md` 的目录，或单个 `.md` 文件） |
+
+GitHub 目录通过 Contents API 读取，所以 `references/` 等文本文件会一起装进来；单个 raw 文件只装 `SKILL.md`。未认证的 GitHub API 每小时限 60 次；更大的私有仓库建议先 clone，再从本地路径安装。
+
+安装和 `skill_create` 走同一个存储层，先校验再落盘，目录照样自动刷新。来源 URL、解析位置和时间戳会记录在技能目录内的 `.skill-studio.json`。二进制资源会跳过：这种方式安装的技能只包含文本。
+
+```text
+安装 https://github.com/ZTYZZ/dsh-skill-studio/tree/main/examples/release-notes
+→ 已安装技能 "release-notes"。
+  Source: https://github.com/ZTYZZ/dsh-skill-studio/tree/main/examples/release-notes
+  Files: references/format.md
+```
 
 ---
 
@@ -182,11 +207,12 @@ whenToUse: 用户询问某个版本改了什么。
 
 ## 工作原理
 
-- 这是一个 Host bundle：`cordis.patch.yml` 插入一行插件；`index.js` 在全局工具注册表上注册五个工具，并通过 `ctx.skills` 注册一个运行时技能。
-- `skill_create` / `skill_update` / `skill_delete` 只在 `skillsDir` 内写入，使用原子 rename。
+- 这是一个 Host bundle：`cordis.patch.yml` 插入一行插件；`index.js` 在全局工具注册表上注册六个工具，并通过 `ctx.skills` 注册一个运行时技能。
+- `skill_create`、`skill_install`、`skill_update`、`skill_delete` 只在 `skillsDir` 内写入，使用原子 rename。
+- `skill_install` 抓取指定来源、校验技能包，再交给同一个存储层；它是唯一会发起网络请求的代码路径。
 - Harness 的 `dsh-skill-filesystem` provider 监听该目录。新增、修改或删除 `SKILL.md` 会让它的目录缓存失效，`dsh-tool-skill` 随即追加一份替换目录。这就是无需重启的原因。
 - 所有校验发生在写入之前。规则集中在 `lib/frontmatter.js`，并有单元测试覆盖。
-- 零运行时依赖、无网络请求、无后台进程：只是基于 `node:fs` 的几百行 ESM。
+- 零运行时依赖、无后台进程；只有 `skill_install` 会联网，而且只访问你指定的来源。
 
 ---
 
@@ -194,9 +220,10 @@ whenToUse: 用户询问某个版本改了什么。
 
 - **写入被限制**在 `skillsDir` 内。`..`、绝对路径、反斜杠、把 `SKILL.md` 当资源、以及通过符号链接写出目录，都会被拒绝。
 - **删除可恢复**：技能被移到 `<skillsDir>/.trash/<name>-<timestamp>`。
-- **大小限制**：技能文件 512 KiB、单个资源 256 KiB、单次创建/更新调用 1 MiB。
+- **大小限制**：技能文件 512 KiB、单个资源 256 KiB、单次创建/安装/更新调用 1 MiB。
+- **远程安装拒绝回环和私有网段地址**，只支持 `http(s)`；GitHub 目录通过公开 Contents API 读取。
 - **技能是指令，不是普通数据**。由不可信内容生成的技能可能影响之后的会话。不是自己写的技能，保留前先审阅；`.trash` 不会被扫描，移出目录即移出目录影响。
-- 插件不读取环境密钥、不发起网络请求、不执行技能脚本。`scripts/` 只存储，不运行。
+- 插件不读取环境密钥、不执行技能脚本。`scripts/` 只存储，不运行。网络访问只发生在 `skill_install` 且只针对你提供的来源。
 
 ---
 
@@ -213,6 +240,7 @@ npm run check   # 对所有运行时模块执行 node --check
 index.js              Host 插件：工具、配置、运行时技能注册
 lib/frontmatter.js    YAML 子集解析/序列化、校验、限制
 lib/skills.js         文件系统存储：list/read/create/update/delete
+lib/install.js        从 GitHub、URL 或本地路径抓取并校验技能
 lib/meta-skill.js     运行时注册的 skill-creator 指令
 test/                 单元测试
 examples/             可直接复制的示例技能
@@ -232,7 +260,7 @@ examples/             可直接复制的示例技能
 ## 路线图
 
 - Settings → Skills 页面（无需通过 Agent，直接浏览、创建、编辑）。
-- `skill_install`：从本地目录或 GitHub URL 导入技能，并带审阅步骤。
+- 技能索引与 `skill_search`：不靠 URL 也能找到技能。
 - `skill_validate`：对整个技能目录做 CI 式 lint。
 - 可选的仓库级根目录（当前仓库的 `.dsh/skills`）。
 

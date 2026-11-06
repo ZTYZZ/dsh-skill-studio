@@ -1,5 +1,6 @@
 import os from 'node:os';
 import path from 'node:path';
+import { installFromSource } from './lib/install.js';
 import { SKILL_CREATOR } from './lib/meta-skill.js';
 import { createSkillStore, normalizeResourcePath } from './lib/skills.js';
 
@@ -17,6 +18,7 @@ export function apply(ctx, rawConfig = {}) {
   register(listTool(store));
   register(readTool(store));
   register(createTool(store));
+  register(installTool(store));
   register(updateTool(store));
   register(deleteTool(store));
 
@@ -261,6 +263,58 @@ function createTool(store) {
   };
 }
 
+function installTool(store) {
+  return {
+    name: `${TOOL_PREFIX}_install`,
+    description:
+      'Install an existing skill bundle from a GitHub tree/blob URL, an owner/repo/path shorthand, a raw SKILL.md URL, or a local directory. The source must contain a valid SKILL.md; text resources are copied, the bundle is validated before any write, provenance is recorded in .skill-studio.json, and an existing skill is preserved unless overwrite is true. Use this to bring in a skill someone else wrote; use skill_create to author a new one.',
+    parameters: {
+      type: 'object',
+      additionalProperties: false,
+      properties: {
+        source: {
+          type: 'string',
+          description: 'GitHub tree URL (github.com/owner/repo/tree/ref/path), owner/repo/path shorthand, raw SKILL.md URL, or an absolute local path to a skill directory or .md file.',
+        },
+        overwrite: {
+          type: 'boolean',
+          description: 'Replace an existing skill with the same name. Defaults to false.',
+        },
+      },
+      required: ['source'],
+    },
+    output: {
+      schema: {
+        type: 'object',
+        properties: {
+          installed: { type: 'boolean' },
+          name: { type: 'string' },
+          path: { type: 'string' },
+          source: { type: 'string' },
+          files: { type: 'array', items: { type: 'string' } },
+          warnings: { type: 'array', items: { type: 'string' } },
+        },
+      },
+      render: (_args, value) => text(renderInstall(value)),
+    },
+    async execute(args) {
+      const result = await installFromSource({
+        source: args?.source,
+        store,
+        overwrite: args?.overwrite === true,
+      });
+      return {
+        installed: true,
+        name: result.name,
+        path: result.path,
+        source: result.source,
+        files: result.files,
+        warnings: result.warnings,
+      };
+    },
+  };
+}
+
 function updateTool(store) {
   return {
     name: `${TOOL_PREFIX}_update`,
@@ -410,6 +464,17 @@ function renderRead(value) {
     for (const warning of value.warnings) lines.push(`- ${warning}`);
   }
   lines.push('', '---', '', value.body);
+  return lines.join('\n');
+}
+
+function renderInstall(value) {
+  const lines = [`Installed skill "${value.name}".`, value.path, `Source: ${value.source}`];
+  if (value.files.length > 0) lines.push(`Files: ${value.files.join(', ')}`);
+  if (value.warnings.length > 0) {
+    lines.push('', 'Warnings:');
+    for (const warning of value.warnings) lines.push(`- ${warning}`);
+  }
+  lines.push('', 'The skill catalog refreshes automatically; the change is available to later steps.');
   return lines.join('\n');
 }
 

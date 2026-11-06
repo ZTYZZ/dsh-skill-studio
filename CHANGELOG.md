@@ -2,6 +2,14 @@
 
 All notable changes to this project are documented here.
 
+## 1.1.0 — 2026-11-06
+
+- New `skill_install` tool: install an existing bundle from a GitHub tree/blob URL, `owner/repo/path`, a raw `SKILL.md` URL, or a local directory or `.md` file.
+- GitHub directory installs fetch `SKILL.md` and text resources through the Contents API; single-file and raw installs are supported.
+- Installs are validated before writing, preserve unknown frontmatter, and record source provenance in `.skill-studio.json`.
+- Remote installs reject loopback and private-network hosts; text-only bundles, 50 files / 1 MiB limits, 20 s fetch timeout.
+- Documentation and tests for source parsing, local/GitHub/raw installs, validation failures, and private-host rejection.
+
 ## 1.0.0 — 2026-11-06
 
 First release.

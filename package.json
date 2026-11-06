@@ -1,7 +1,7 @@
 {
   "name": "dsh-skill-studio",
-  "version": "1.0.0",
-  "description": "Create, read, update, list, and delete reusable agent skills from a DeepSeek Harness session.",
+  "version": "1.1.0",
+  "description": "Create, install, read, update, list, and delete reusable agent skills from a DeepSeek Harness session.",
   "type": "module",
   "license": "MIT",
   "author": "ZTYZZ",
@@ -44,7 +44,7 @@
   },
   "scripts": {
     "test": "node --test",
-    "check": "node --check index.js && node --check lib/frontmatter.js && node --check lib/skills.js && node --check lib/meta-skill.js"
+    "check": "node --check index.js && node --check lib/frontmatter.js && node --check lib/skills.js && node --check lib/install.js && node --check lib/meta-skill.js"
   },
   "engines": {
     "node": ">=20"
