@@ -53,7 +53,11 @@ git clone https://github.com/ZTYZZ/dsh-skill-studio.git
 Install the DSH bundle at /absolute/path/to/dsh-skill-studio using plugin_manager.
 ```
 
-The equivalent direct call is `plugin_manager` with `action: "install_bundle"` and the absolute package directory as `target`. The manager links the checkout into the profile, so a later `git pull` updates the installed plugin.
+The equivalent direct call is `plugin_manager` with `action: "install_bundle"` and the absolute package directory as `target`. The manager links the checkout into the profile, so a later `git pull` updates the files on disk.
+
+### Updating
+
+Replacing the JavaScript of an installed package needs a fresh module generation: `git pull`, then restart the app or toggle the bundle off and on in **Settings → Plugins**. Creating skills never requires a restart — only updating the plugin code does.
 
 Verify from a fresh step:
 

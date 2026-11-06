@@ -53,7 +53,11 @@ git clone https://github.com/ZTYZZ/dsh-skill-studio.git
 用 plugin_manager 安装 /绝对路径/dsh-skill-studio 这个 DSH bundle。
 ```
 
-等价操作是 `plugin_manager` 的 `install_bundle`，`target` 传包的绝对路径。管理器会把 checkout 链接进 profile，之后 `git pull` 就能更新已安装插件。
+等价操作是 `plugin_manager` 的 `install_bundle`，`target` 传包的绝对路径。管理器会把 checkout 链接进 profile，之后 `git pull` 会更新磁盘上的文件。
+
+### 更新
+
+替换已安装插件的 JavaScript 需要新的模块代：`git pull` 之后重启应用，或在 **设置 → 插件** 里先禁用再启用 bundle。创建技能永远不需要重启——只有更新插件代码才需要。
 
 在下一步验证：
 
