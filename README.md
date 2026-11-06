@@ -4,9 +4,38 @@
 
 **在对话里直接创建、安装、读取、更新、列出和删除可复用的 Agent 技能。**
 
-DeepSeek Harness 本来就会「用」技能：`skill` 工具负责加载，会话目录负责展示。Skill Studio 补上另一半——一套小而安全的创作接口，让 Agent 能「做」技能：写、装、校验、迭代、退役，全程不离开会话。
+DeepSeek Harness 已经会「用」技能。Skill Studio 用同一套 `SKILL.md` 补齐「做、装、管、接」——不另起运行时。思路和 Codex 的 skill-creator 一样：技能就是磁盘上的普通 `SKILL.md` 包，由 Harness 自带的文件系统 provider 发现并热更新。
 
-思路和 Codex 的 skill-creator 一样，但技能就是磁盘上的普通 `SKILL.md` 包，由 Harness 自带的文件系统 provider 发现，并热更新到所有会话。
+## 和原生 skill 的区别
+
+DSH 原生已经会「用」技能：`skill` 工具负责加载，会话目录负责展示，文件系统 provider 负责发现和监听。Skill Studio 不重复这些，而是补齐「做、装、管、接」：
+
+| 能力 | DSH 原生 | Skill Studio |
+| --- | --- | --- |
+| 发现并加载技能 | ✅ `skill` 工具 + 文件系统 provider | 复用原生，不另起一套 |
+| 技能格式 | ✅ `SKILL.md` | 完全兼容，不魔改 |
+| 热更新 | ✅ 监听技能根目录 | ✅ 另加 7 类外部 Agent 目录 |
+| 新建 / 修改 / 删除 | 需自己写文件 | `skill_create` / `skill_update` / `skill_delete`，校验后原子写入 |
+| 安装现成技能 | — | `skill_install`：GitHub / raw URL / `owner/repo/path` / 本地目录 |
+| 接入其他 Agent | — | 自动发现 Codex、Claude、Cursor、Grok、Gemini、WorkBuddy、Hub（本机 82 个） |
+| 坏技能诊断 | 目录静默跳过 | `skill_list` 列出错误和警告 |
+| 可视化管理 | `/` 菜单（技术名，有缓存） | 设置 → 技能工坊：搜索、详情、安装、新建、删除 |
+| 中文名 | 仅 kebab 技术名 | 中文 H1 优先，英文技术名第二 |
+| 删除恢复 | 手动 | `.trash` 软删除 |
+| 安全边界 | 取决于你用的写入工具 | 路径 jail、符号链接拦截、大小限制 |
+
+一句话：**原生负责「用」，Skill Studio 负责「做、装、管、接」。** 两者不是替代关系；卸载插件，已有技能仍然可用。
+
+## 能做什么
+
+| 你想做的事 | 直接说 | 背后发生什么 |
+| --- | --- | --- |
+| 把一次流程沉淀成技能 | 「把刚才这套分镜流程做成技能」 | `skill-creator` 指导模型，`skill_create` 写文件 |
+| 装一个现成技能 | 「安装这个技能：https://github.com/...」 | `skill_install` 抓取、校验、落盘 |
+| 用 Codex 里的技能 | 不用操作，刷新后自动出现 | 只读外部 provider，原文件原地读取 |
+| 查技能为什么没出现 | 「列出技能，看看哪个坏了」 | `skill_list` 显示错误、警告和路径 |
+| 删掉试用的技能 | 「删掉 xxx 技能」 | `skill_delete` 移入 `.trash`，可恢复 |
+| 在浏览器里管理 | 设置 → 技能工坊 | 搜索、查看、安装、新建、删除 |
 
 ```text
 你：把我们发布说明的流程沉淀成一个技能。

@@ -4,9 +4,38 @@ English | [中文](README.md)
 
 **Create, install, read, update, list, and delete reusable agent skills — from the conversation itself.**
 
-DeepSeek Harness already knows how to *use* skills: the `skill` tool loads them and the session catalog advertises them. Skill Studio adds the missing half: a small, safe authoring surface so an agent can *make* a skill, validate it, revise it, and retire it without leaving the session.
+DeepSeek Harness already knows how to *use* skills. Skill Studio uses the same `SKILL.md` format to add the lifecycle — authoring, installing, managing, importing — without a parallel runtime. Like Codex's skill-creator, a skill is an ordinary `SKILL.md` bundle discovered and hot-reloaded by DSH's own filesystem provider.
 
-It works like the skill-creator workflow in Codex, but the skills are ordinary `SKILL.md` bundles on disk, discovered by the Harness's own filesystem provider and hot-reloaded into every session.
+## Native skills vs. Skill Studio
+
+DSH already knows how to *use* skills: the `skill` tool loads them, the session catalog advertises them, and the filesystem provider discovers and watches them. Skill Studio does not duplicate that. It adds the lifecycle: **authoring, installing, managing, and importing**.
+
+| Capability | Native DSH | Skill Studio |
+| --- | --- | --- |
+| Discover and load | ✅ `skill` tool + filesystem provider | Reuses it; no parallel runtime |
+| Skill format | ✅ `SKILL.md` | Fully compatible; no fork |
+| Hot reload | ✅ Watches skill roots | ✅ Also watches 7 external agent roots |
+| Create / update / delete | Hand-edit files | `skill_create` / `skill_update` / `skill_delete`, validated and atomic |
+| Install an existing skill | — | `skill_install`: GitHub / raw URL / `owner/repo/path` / local directory |
+| Import from other agents | — | Auto-discovers Codex, Claude, Cursor, Grok, Gemini, WorkBuddy, Hub (82 skills on this machine) |
+| Diagnose invalid skills | Silently skipped | `skill_list` shows errors and warnings |
+| Visual management | `/` menu (technical names, cached) | Settings → Skill Studio: search, detail, install, create, delete |
+| Chinese names | Technical kebab-case only | Chinese H1 first, English technical name second |
+| Delete recovery | Manual | `.trash` soft delete |
+| Safety | Depends on the write tool | Path jail, symlink rejection, size limits |
+
+In one sentence: **native owns the runtime; Skill Studio owns the lifecycle.** They are complementary — uninstalling the plugin leaves your skills intact.
+
+## What it can do
+
+| What you want | Say | What happens |
+| --- | --- | --- |
+| Capture a workflow as a skill | “Turn this storyboard process into a skill.” | `skill-creator` guides the model; `skill_create` writes it |
+| Install an existing skill | “Install https://github.com/...” | `skill_install` fetches, validates, writes |
+| Use a Codex skill | Nothing; refresh and it appears | Read-only external provider reads the original files |
+| Find a missing skill | “List the skills and show what is broken.” | `skill_list` reports errors, warnings, paths |
+| Delete a trial skill | “Delete the xxx skill.” | `skill_delete` moves it to `.trash` |
+| Manage in the browser | Settings → Skill Studio | Search, view, install, create, delete |
 
 ```text
 You: Turn our release-notes process into a skill.
