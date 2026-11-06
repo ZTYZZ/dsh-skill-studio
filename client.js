@@ -13,7 +13,9 @@ window.__ModuleLoader__.load({
       title: '技能工坊',
       subtitle: '浏览、安装和创作可复用的 Agent 技能。安装后会自动进入所有会话的技能目录。',
       rootLabel: '技能目录',
-      externalNote: '其他 Agent（如 Codex）目录里的技能只读接入会话目录，由原工具管理，不在此页显示。',
+      localLabel: '本地',
+      externalLabel: '其他 Agent',
+      externalNote: '其他 Agent（Codex / Claude / Cursor / Grok / Gemini / WorkBuddy / Hub）的技能以只读方式接入；这里可查看，删除请回原工具。',
       refresh: '刷新',
       refreshTitle: '重新读取技能目录',
       install: '安装技能',
@@ -77,7 +79,9 @@ window.__ModuleLoader__.load({
       title: 'Skill Studio',
       subtitle: 'Browse, install, and author reusable agent skills. New skills enter every session catalog automatically.',
       rootLabel: 'Skills directory',
-      externalNote: 'Skills mounted from other agents (for example Codex) join the session catalog but are managed by their original tool, so they are not listed here.',
+      localLabel: 'local',
+      externalLabel: 'other agents',
+      externalNote: 'Skills from other agents (Codex, Claude, Cursor, Grok, Gemini, WorkBuddy, Hub) are mounted read-only. View them here; delete them in their original tool.',
       refresh: 'Refresh',
       refreshTitle: 'Reload the skills directory',
       install: 'Install skill',
@@ -262,6 +266,7 @@ window.__ModuleLoader__.load({
 
     function Page({ S }) {
       const [data, setData] = useState(null);
+      const [external, setExternal] = useState({ skills: [], roots: [] });
       const [loading, setLoading] = useState(true);
       const [error, setError] = useState('');
       const [query, setQuery] = useState('');
@@ -280,6 +285,11 @@ window.__ModuleLoader__.load({
         setError('');
         try {
           setData(await request('action=list'));
+          try {
+            setExternal(await request('action=external'));
+          } catch {
+            setExternal({ skills: [], roots: [] });
+          }
         } catch (failure) {
           setError(failure instanceof Error ? failure.message : String(failure));
         } finally {
@@ -291,19 +301,28 @@ window.__ModuleLoader__.load({
         load();
       }, [load]);
 
-      const skills = data?.skills ?? [];
+      const localSkills = data?.skills ?? [];
+      const externalSkills = useMemo(
+        () => (external.skills ?? []).map((skill) => ({ ...skill, external: true })),
+        [external],
+      );
+      const skills = useMemo(
+        () => [...localSkills.map((skill) => ({ ...skill, external: false })), ...externalSkills],
+        [data, externalSkills],
+      );
       const filtered = useMemo(() => {
         const needle = query.trim().toLowerCase();
         if (needle === '') return skills;
         return skills.filter(
           (skill) =>
             skill.name.toLowerCase().includes(needle) ||
+            String(skill.displayName ?? '').toLowerCase().includes(needle) ||
             String(skill.description ?? '').toLowerCase().includes(needle),
         );
       }, [skills, query]);
 
-      const validCount = skills.filter((skill) => skill.valid).length;
-      const invalidCount = skills.length - validCount;
+      const validCount = localSkills.filter((skill) => skill.valid).length;
+      const invalidCount = localSkills.length - validCount;
 
       const openModal = useCallback((name) => {
         setFormError('');
@@ -311,12 +330,15 @@ window.__ModuleLoader__.load({
       }, []);
 
       const openView = useCallback(
-        async (name) => {
+        async (skill) => {
           setModal('view');
           setViewing(null);
           setViewLoading(true);
           try {
-            setViewing(await request(`action=read&name=${encodeURIComponent(name)}`));
+            const target = skill.external
+              ? `action=readExternal&path=${encodeURIComponent(skill.path)}`
+              : `action=read&name=${encodeURIComponent(skill.name)}`;
+            setViewing(await request(target));
           } catch (failure) {
             setNotice({ tone: 'error', text: failure instanceof Error ? failure.message : String(failure) });
             setModal(null);
@@ -407,9 +429,9 @@ window.__ModuleLoader__.load({
       const stats = h(
         'div',
         { className: 'ss-stats' },
-        h('span', null, `${skills.length} ${S.total}`),
+        h('span', null, `${localSkills.length} ${S.localLabel}`),
         h('span', { className: 'ss-dot' }, '·'),
-        h('span', null, `${validCount} ${S.valid}`),
+        h('span', null, `${externalSkills.length} ${S.externalLabel}`),
         invalidCount > 0 ? h('span', { className: 'ss-stat-error' }, ` · ${invalidCount} ${S.invalid}`) : null,
       );
 
@@ -459,7 +481,7 @@ window.__ModuleLoader__.load({
                 filtered.map((skill) =>
                   h(
                     'div',
-                    { className: 'ss-row', key: skill.name },
+                    { className: 'ss-row', key: `${skill.external ? 'x' : 'l'}:${skill.name}` },
                     h('div', { className: 'ss-mark' }, h(Spark)),
                     h(
                       'div',
@@ -467,11 +489,22 @@ window.__ModuleLoader__.load({
                       h(
                         'div',
                         { className: 'ss-name-row' },
-                        h('span', { className: 'ss-name' }, skill.name),
-                        skill.valid ? h(Badge, { tone: 'ok' }, S.valid) : h(Badge, { tone: 'error' }, S.invalid),
+                        h(
+                          'span',
+                          { className: 'ss-display' },
+                          skill.displayName && skill.displayName !== skill.name ? skill.displayName : skill.name,
+                        ),
+                        skill.displayName && skill.displayName !== skill.name
+                          ? h('code', { className: 'ss-name' }, skill.name)
+                          : null,
+                        skill.external
+                          ? h(Badge, { tone: 'info' }, skill.agent ?? S.externalLabel)
+                          : skill.valid
+                            ? h(Badge, { tone: 'ok' }, S.valid)
+                            : h(Badge, { tone: 'error' }, S.invalid),
                         skill.invocation?.modelInvocable === false ? h(Badge, null, S.manual) : null,
                         skill.invocation?.userInvocable === false ? h(Badge, null, S.noSlash) : null,
-                        skill.source ? h(Badge, { tone: 'info' }, S.installed) : null,
+                        !skill.external && skill.source ? h(Badge, { tone: 'info' }, S.installed) : null,
                       ),
                       h('p', { className: 'ss-desc' }, skill.description || S.noDescription),
                       skill.errors?.length > 0
@@ -516,12 +549,14 @@ window.__ModuleLoader__.load({
                     h(
                       'div',
                       { className: 'ss-actions' },
-                      h('button', { className: 'ss-btn ss-small', onClick: () => openView(skill.name) }, S.view),
-                      h(
-                        'button',
-                        { className: 'ss-btn ss-small danger', onClick: () => setConfirming(skill.name) },
-                        S.delete,
-                      ),
+                      h('button', { className: 'ss-btn ss-small', onClick: () => openView(skill) }, S.view),
+                      skill.external
+                        ? null
+                        : h(
+                            'button',
+                            { className: 'ss-btn ss-small danger', onClick: () => setConfirming(skill.name) },
+                            S.delete,
+                          ),
                     ),
                   ),
                 ),
@@ -643,7 +678,7 @@ window.__ModuleLoader__.load({
           ? h(
               Modal,
               {
-                title: viewing?.name ?? S.viewTitle,
+                title: viewing?.displayName ?? viewing?.name ?? S.viewTitle,
                 subtitle: viewing?.description ?? '',
                 onClose: () => setModal(null),
                 closeLabel: S.close,
@@ -705,7 +740,8 @@ window.__ModuleLoader__.load({
 .ss-mark { flex: 0 0 auto; width: 32px; height: 32px; border-radius: 9px; display: flex; align-items: center; justify-content: center; color: #fff; background: linear-gradient(135deg, #4f46e5, #7c3aed); box-shadow: 0 2px 6px rgba(79,70,229,.28); }
 .ss-body { flex: 1; min-width: 0; }
 .ss-name-row { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; }
-.ss-name { font: 600 13px/1.4 ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: -0.01em; }
+.ss-display { font-size: 13.5px; font-weight: 600; line-height: 1.4; letter-spacing: -0.01em; }
+.ss-name { font: 10.5px/1.4 ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: -0.01em; color: var(--dsw-alias-label-secondary); }
 .ss-desc { margin: 4px 0 0; color: var(--dsw-alias-label-secondary); font-size: 12.5px; line-height: 1.55; }
 .ss-badge { display: inline-flex; align-items: center; height: 18px; padding: 0 7px; border-radius: 999px; border: 1px solid var(--dsw-alias-border-l1); color: var(--dsw-alias-label-secondary); font-size: 10.5px; line-height: 1; white-space: nowrap; }
 .ss-badge.ss-ok { color: var(--dsw-alias-state-success-primary); border-color: currentColor; }

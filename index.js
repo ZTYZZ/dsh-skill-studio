@@ -1,7 +1,7 @@
 import os from 'node:os';
 import path from 'node:path';
 import { readFile } from 'node:fs/promises';
-import { createExternalProvider, resolveExternalDirs } from './lib/external.js';
+import { createExternalProvider, readExternalSkill, resolveExternalDirs, scanExternalSkills } from './lib/external.js';
 import { installFromSource } from './lib/install.js';
 import { SKILL_CREATOR } from './lib/meta-skill.js';
 import { createSkillStore, normalizeResourcePath } from './lib/skills.js';
@@ -24,7 +24,7 @@ export function apply(ctx, rawConfig = {}) {
   register(installTool(store));
   register(updateTool(store));
   register(deleteTool(store));
-  registerApi(ctx, store);
+  registerApi(ctx, store, externalDirs);
 
   // Teach the model how to author skills well. The skill is registered as a
   // runtime skill, so it is available even before the first skill is written.
@@ -511,7 +511,7 @@ function truncate(value, max) {
 // page in the browser cannot create or delete skills on the loopback server.
 // ---------------------------------------------------------------------------
 
-function registerApi(ctx, store) {
+function registerApi(ctx, store, externalDirs) {
   const webServer = ctx.get('webServer');
   if (webServer === undefined) return;
 
@@ -522,6 +522,41 @@ function registerApi(ctx, store) {
         const action = url.searchParams.get('action');
         if (action === 'list') {
           respondJson(res, 200, { ok: true, data: await listPayload(store) });
+          return;
+        }
+        if (action === 'external') {
+          const skills = await scanExternalSkills(externalDirs);
+          const roots = new Map();
+          for (const skill of skills) {
+            const root = skill.locator.root;
+            const entry = roots.get(root) ?? { path: root, agent: skill.locator.agent, count: 0 };
+            entry.count += 1;
+            roots.set(root, entry);
+          }
+          respondJson(res, 200, {
+            ok: true,
+            data: {
+              roots: [...roots.values()],
+              skills: skills.map((skill) => ({
+                name: skill.name,
+                displayName: skill.displayName,
+                description: skill.description,
+                path: skill.path,
+                whenToUse: skill.whenToUse,
+                root: skill.locator.root,
+                agent: skill.locator.agent,
+              })),
+            },
+          });
+          return;
+        }
+        if (action === 'readExternal') {
+          const file = url.searchParams.get('path');
+          if (file === null || file.trim() === '') {
+            respondJson(res, 400, { ok: false, error: 'path is required' });
+            return;
+          }
+          respondJson(res, 200, { ok: true, data: await readExternalSkill(externalDirs, file) });
           return;
         }
         if (action === 'read') {
@@ -619,6 +654,7 @@ async function listPayload(store) {
       }
       return {
         name: skill.name,
+        displayName: skill.displayName,
         description: skill.description,
         valid: skill.valid,
         errors: skill.errors,

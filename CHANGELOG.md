@@ -2,6 +2,14 @@
 
 All notable changes to this project are documented here.
 
+## 1.4.0 — 2026-11-06
+
+- Auto-discover every known agent skill root: Codex, Claude, WorkBuddy, Hub, Gemini, Cursor, Grok, plus generic `<agent>/skills` directories under the home directory.
+- Mount 80+ external skills read-only in one provider; skip invalid names (underscores/uppercase) and broken symlinks, deduplicate names, and truncate oversized descriptions.
+- The settings page now lists external skills alongside local ones; each row shows the Chinese H1 title first and the English technical name second.
+- External skills can be opened read-only through `/skill-studio/api?action=readExternal`.
+- Add `autoDiscoverExternalSkills`; document the `/` menu's technical-name limitation.
+
 ## 1.3.0 — 2026-11-06
 
 - Add a read-only external skill provider that exposes other agents' skill directories to DSH. The default root is `~/.codex/skills`, so Codex skills appear in every session catalog without copying.

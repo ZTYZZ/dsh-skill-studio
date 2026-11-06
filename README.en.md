@@ -219,7 +219,8 @@ The only setting is where skills live:
 | Field | Default | Meaning |
 | --- | --- | --- |
 | `skillsDir` | `$DSH_HOME/skills` (usually `~/.dsh/skills`) | Directory scanned and written by the tools. `~` is expanded; relative paths resolve against the Host process working directory. |
-| `externalSkillDirs` | `["~/.codex/skills"]` | Other agents' skill roots, exposed read-only; `[]` disables. |
+| `externalSkillDirs` | auto-discovered | Add or replace other agents' skill roots; `[]` disables external skills. |
+| `autoDiscoverExternalSkills` | `true` | Discover Codex, Claude, Cursor, Grok, Gemini, WorkBuddy, Hub, and other agent roots. |
 
 The default is the same user root the built-in filesystem provider scans, so skills created here are visible to every session and survive restarts. A custom `skillsDir` must also be added to the provider's `customSkillDirs` if you want the catalog to discover it — the tools will still work, but the skills would not be advertised.
 
@@ -227,13 +228,15 @@ The default is the same user root the built-in filesystem provider scans, so ski
 
 DSH scans only its own roots: `~/.dsh/skills`, `~/.agents/skills`, and the project's `.dsh/skills` and `.agents/skills`. Codex's `~/.codex/skills`, Claude's `~/.claude/skills`, and Cursor's `.cursor/skills-cursor` are **not loaded automatically** — different directory conventions, not broken skills.
 
-Since 1.3.0 the plugin registers a read-only provider that exposes `~/.codex/skills` by default:
+Since 1.4.0 the plugin registers a read-only provider that **auto-discovers every known agent root**:
+
+`~/.codex/skills`, `~/.claude/skills`, `~/.workbuddy/skills`, `~/.hub/skills`, `~/.gemini/antigravity/skills`, `~/.gemini/antigravity/builtin/skills`, `~/.cursor/skills-cursor`, `~/.grok/bundled/skills`, plus any other `<agent>/skills` under the home directory.
 
 - No copying: skills are read in place, so edits in Codex show up in DSH;
 - They enter every session catalog, and `references/` still resolve against the original directory;
 - A directory watcher refreshes the catalog without a restart;
-- Add more roots (Claude, WorkBuddy, Gemini, …) through `externalSkillDirs`;
-- Set `[]` to disable.
+- Add extra roots through `externalSkillDirs`; 80+ skills can be mounted;
+- `autoDiscoverExternalSkills: false` keeps only explicit roots; `externalSkillDirs: []` disables all external skills.
 
 ```yaml
 - insert:
@@ -245,7 +248,7 @@ Since 1.3.0 the plugin registers a read-only provider that exposes `~/.codex/ski
           - ~/.claude/skills
 ```
 
-Symlinked entries under `~/.claude/skills` are followed only when their target exists; broken links are skipped. The Skill Studio page manages only `skillsDir`; externally mounted skills stay managed by their original tool.
+Symlinked entries under `~/.claude/skills` are followed only when their target exists; broken links are skipped. **The Skill Studio page lists these external skills read-only, with the Chinese H1 title first and the English technical name second; edit or delete them in their original tool.** DSH's built-in `/` menu can only show the technical kebab-case name, not the Chinese title.
 
 > Only add directories you trust: every skill in them is advertised to sessions.
 

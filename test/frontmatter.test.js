@@ -4,6 +4,7 @@ import {
   parseSkillText,
   renderSkillText,
   validateSkillDefinition,
+  displayNameOf,
   invocationOf,
 } from '../lib/frontmatter.js';
 
@@ -128,4 +129,10 @@ test('maps frontmatter flags to the invocation policy', () => {
     modelInvocable: true,
     userInvocable: false,
   });
+});
+
+test('derives a Chinese display name from the first H1', () => {
+  assert.equal(displayNameOf({}, '# 中文标题\n\n正文', 'fallback'), '中文标题');
+  assert.equal(displayNameOf({ title: 'Frontmatter 标题' }, 'no heading', 'fallback'), 'Frontmatter 标题');
+  assert.equal(displayNameOf({}, 'no heading', 'fallback'), 'fallback');
 });
