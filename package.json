@@ -1,7 +1,7 @@
 {
   "name": "dsh-skill-studio",
-  "version": "1.1.0",
-  "description": "Create, install, read, update, list, and delete reusable agent skills from a DeepSeek Harness session.",
+  "version": "1.2.0",
+  "description": "Create, install, and manage reusable agent skills from a DeepSeek Harness session, with a settings UI.",
   "type": "module",
   "license": "MIT",
   "author": "ZTYZZ",
@@ -25,26 +25,32 @@
     ".": "./index.js",
     "./locale/*.json": "./locale/*.json",
     "./icon": "./icon.svg",
-    "./package.json": "./package.json"
+    "./package.json": "./package.json",
+    "./client": "./client.js"
   },
   "files": [
     "index.js",
+    "client.js",
     "lib/*.js",
     "cordis.patch.yml",
     "locale/*.json",
     "icon.svg",
+    "LICENSE",
     "README.md",
-    "README.zh.md",
-    "LICENSE"
+    "README.en.md"
   ],
   "dsh": {
     "bundle": {
       "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "immediately": true
     }
   },
   "scripts": {
     "test": "node --test",
-    "check": "node --check index.js && node --check lib/frontmatter.js && node --check lib/skills.js && node --check lib/install.js && node --check lib/meta-skill.js"
+    "check": "node --check index.js && node --check client.js && node --check lib/frontmatter.js && node --check lib/skills.js && node --check lib/install.js && node --check lib/meta-skill.js"
   },
   "engines": {
     "node": ">=20"

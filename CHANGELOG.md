@@ -2,6 +2,14 @@
 
 All notable changes to this project are documented here.
 
+## 1.2.0 — 2026-11-06
+
+- New Skill Studio settings page (Settings → 技能工坊 / Skill Studio): live skill list, search, detail view, install, create, and delete with confirmation.
+- The page reads `/skill-studio/api`; GET is read-only and POST requires a same-port loopback `Origin`.
+- Invalid skills, invocation flags, file counts, and installed provenance are visible in the UI.
+- Chinese is now the default README; the English version moved to `README.en.md`.
+- UI follows the host theme tokens and the active app locale.
+
 ## 1.1.0 — 2026-11-06
 
 - New `skill_install` tool: install an existing bundle from a GitHub tree/blob URL, `owner/repo/path`, a raw `SKILL.md` URL, or a local directory or `.md` file.

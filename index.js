@@ -1,5 +1,6 @@
 import os from 'node:os';
 import path from 'node:path';
+import { readFile } from 'node:fs/promises';
 import { installFromSource } from './lib/install.js';
 import { SKILL_CREATOR } from './lib/meta-skill.js';
 import { createSkillStore, normalizeResourcePath } from './lib/skills.js';
@@ -21,6 +22,7 @@ export function apply(ctx, rawConfig = {}) {
   register(installTool(store));
   register(updateTool(store));
   register(deleteTool(store));
+  registerApi(ctx, store);
 
   // Teach the model how to author skills well. The skill is registered as a
   // runtime skill, so it is available even before the first skill is written.
@@ -492,4 +494,179 @@ function renderWrite(verb, value) {
 function truncate(value, max) {
   const text = String(value ?? '');
   return text.length > max ? `${text.slice(0, max - 1)}…` : text;
+}
+
+// ---------------------------------------------------------------------------
+// Web UI JSON API
+//
+// The settings page is a Client plugin; this exact route is its data plane.
+// GET is read-only. POST requires a same-origin Origin header, so a random
+// page in the browser cannot create or delete skills on the loopback server.
+// ---------------------------------------------------------------------------
+
+function registerApi(ctx, store) {
+  const webServer = ctx.get('webServer');
+  if (webServer === undefined) return;
+
+  const handler = async (req, res) => {
+    const url = new URL(req.url ?? '/', 'http://skill-studio.invalid');
+    try {
+      if (req.method === 'GET') {
+        const action = url.searchParams.get('action');
+        if (action === 'list') {
+          respondJson(res, 200, { ok: true, data: await listPayload(store) });
+          return;
+        }
+        if (action === 'read') {
+          const name = url.searchParams.get('name');
+          if (name === null || name.trim() === '') {
+            respondJson(res, 400, { ok: false, error: 'name is required' });
+            return;
+          }
+          const skill = await store.read(name);
+          respondJson(res, 200, {
+            ok: true,
+            data: {
+              name: skill.name,
+              path: skill.path,
+              description: skill.description,
+              whenToUse: skill.whenToUse,
+              body: skill.body,
+              files: skill.files.map((file) => file.path),
+              valid: skill.valid,
+              errors: skill.errors,
+              warnings: skill.warnings,
+            },
+          });
+          return;
+        }
+        respondJson(res, 404, { ok: false, error: 'unknown action' });
+        return;
+      }
+
+      if (req.method === 'POST') {
+        if (!sameOrigin(req, webServer)) {
+          respondJson(res, 403, { ok: false, error: 'cross-origin request denied' });
+          return;
+        }
+        const payload = await readJsonBody(req);
+        if (payload.action === 'create') {
+          const result = await store.create({
+            name: String(payload.name ?? ''),
+            description: String(payload.description ?? ''),
+            body: String(payload.body ?? ''),
+          });
+          respondJson(res, 200, { ok: true, data: { name: result.name, path: result.path } });
+          return;
+        }
+        if (payload.action === 'install') {
+          const result = await installFromSource({
+            source: String(payload.source ?? ''),
+            store,
+            overwrite: payload.overwrite === true,
+          });
+          respondJson(res, 200, {
+            ok: true,
+            data: { name: result.name, path: result.path, files: result.files, warnings: result.warnings },
+          });
+          return;
+        }
+        if (payload.action === 'delete') {
+          const result = await store.remove(String(payload.name ?? ''), String(payload.confirm ?? ''));
+          respondJson(res, 200, { ok: true, data: { name: result.name, trashedTo: result.trashedTo } });
+          return;
+        }
+        respondJson(res, 400, { ok: false, error: 'unknown action' });
+        return;
+      }
+
+      res.writeHead(405, { allow: 'GET, POST' });
+      res.end();
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      respondJson(res, 400, { ok: false, error: message });
+    }
+  };
+
+  ctx.effect(() =>
+    webServer.register({
+      kind: 'exact',
+      path: '/skill-studio/api',
+      handler,
+    }),
+  );
+}
+
+async function listPayload(store) {
+  const result = await store.list();
+  const skills = await Promise.all(
+    result.skills.map(async (skill) => {
+      let source;
+      if (typeof skill.directory === 'string') {
+        try {
+          const provenance = JSON.parse(await readFile(path.join(skill.directory, '.skill-studio.json'), 'utf8'));
+          if (typeof provenance.source === 'string') source = provenance.source;
+        } catch {
+          // No provenance, or it is unreadable: the skill is simply local.
+        }
+      }
+      return {
+        name: skill.name,
+        description: skill.description,
+        valid: skill.valid,
+        errors: skill.errors,
+        warnings: skill.warnings,
+        invocation: skill.invocation,
+        files: skill.files.map((file) => file.path),
+        path: skill.path,
+        bytes: skill.bytes,
+        ...(source === undefined ? {} : { source }),
+      };
+    }),
+  );
+  return { root: result.root, skills };
+}
+
+function sameOrigin(req, webServer) {
+  const origin = req.headers.origin;
+  if (typeof origin !== 'string' || origin === '' || origin === 'null') return false;
+  try {
+    const parsed = new URL(origin);
+    const server = new URL(webServer.getOrigin());
+    const loopback = new Set(['127.0.0.1', 'localhost', '[::1]', '::1']);
+    return loopback.has(parsed.hostname) && parsed.port === server.port;
+  } catch {
+    return false;
+  }
+}
+
+async function readJsonBody(req) {
+  const chunks = [];
+  let size = 0;
+  for await (const chunk of req) {
+    size += chunk.length;
+    if (size > 1024 * 1024) throw new Error('request body is too large');
+    chunks.push(chunk);
+  }
+  if (size === 0) return {};
+  let parsed;
+  try {
+    parsed = JSON.parse(Buffer.concat(chunks).toString('utf8'));
+  } catch {
+    throw new Error('invalid JSON body');
+  }
+  if (parsed === null || typeof parsed !== 'object' || Array.isArray(parsed)) {
+    throw new Error('JSON body must be an object');
+  }
+  return parsed;
+}
+
+function respondJson(res, status, value) {
+  const body = JSON.stringify(value);
+  res.writeHead(status, {
+    'content-type': 'application/json; charset=utf-8',
+    'cache-control': 'no-store',
+    'x-content-type-options': 'nosniff',
+  });
+  res.end(body);
 }

@@ -44,5 +44,5 @@ The suite must pass on Node 20 and 22 (CI covers both).
 ## Pull requests
 
 - One concern per PR; explain the user-visible behavior and how you verified it.
-- Update `README.md`, `README.zh.md`, and `CHANGELOG.md` when behavior or configuration changes.
+- Update `README.md`, `README.en.md`, and `CHANGELOG.md` when behavior or configuration changes.
 - If you change a tool schema, verify it through `cordis_inspect_query` (`Tool.listTools`) in a running Harness, not only by reading the source.

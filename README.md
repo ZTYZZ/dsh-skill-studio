@@ -1,77 +1,79 @@
-# Skill Studio
+# Skill Studio（技能工坊）
 
-**Create, install, read, update, list, and delete reusable agent skills — from the conversation itself.**
+[English](README.en.md) | 中文
 
-DeepSeek Harness already knows how to *use* skills: the `skill` tool loads them and the session catalog advertises them. Skill Studio adds the missing half: a small, safe authoring surface so an agent can *make* a skill, validate it, revise it, and retire it without leaving the session.
+**在对话里直接创建、安装、读取、更新、列出和删除可复用的 Agent 技能。**
 
-It works like the skill-creator workflow in Codex, but the skills are ordinary `SKILL.md` bundles on disk, discovered by the Harness's own filesystem provider and hot-reloaded into every session.
+DeepSeek Harness 本来就会「用」技能：`skill` 工具负责加载，会话目录负责展示。Skill Studio 补上另一半——一套小而安全的创作接口，让 Agent 能「做」技能：写、装、校验、迭代、退役，全程不离开会话。
+
+思路和 Codex 的 skill-creator 一样，但技能就是磁盘上的普通 `SKILL.md` 包，由 Harness 自带的文件系统 provider 发现，并热更新到所有会话。
 
 ```text
-You: Turn our release-notes process into a skill.
+你：把我们发布说明的流程沉淀成一个技能。
 
-Agent: [loads skill-creator]
-       [calls skill_list]      → no existing release-notes skill
-       [calls skill_create]    → ~/.dsh/skills/release-notes/SKILL.md
-       Created skill "release-notes".
-       The skill catalog refreshes automatically.
+Agent：[加载 skill-creator]
+       [调用 skill_list]      → 没有现成的 release-notes
+       [调用 skill_create]    → ~/.dsh/skills/release-notes/SKILL.md
+       已创建技能 "release-notes"。
+       技能目录会自动刷新。
 ```
 
-No restart. No config editing. The new skill appears in the catalog on the next step, for every session using the standard preset.
+不用重启，不用改配置。下一步开始，新技能就出现在所有标准预设会话的技能目录里。
 
 ---
 
-## What you get
+## 提供的工具
 
-| Tool | What it does |
+| 工具 | 作用 |
 | --- | --- |
-| `skill_list` | Lists every skill in the skills directory, **including invalid files** and their diagnostics — the session catalog silently hides broken skills, so this is how you find out why one is missing. |
-| `skill_read` | Reads a skill's frontmatter, instructions, and resource file list, or one resource file inside it. |
-| `skill_create` | Writes `<skills-dir>/<name>/SKILL.md` plus optional `references/`, `scripts/`, and `assets/` files, with validation and conflict protection. |
-| `skill_install` | Installs an existing bundle from a GitHub tree/blob URL, `owner/repo/path`, a raw `SKILL.md` URL, or a local directory — validated before it lands. |
-| `skill_update` | Patches an existing skill. Omitted fields, unknown frontmatter keys, and unlisted files are preserved; resources can be added, replaced, or removed. |
-| `skill_delete` | Moves a skill into `<skills-dir>/.trash` instead of destroying it. Requires an exact-name confirmation. |
+| `skill_list` | 列出技能目录中的全部技能，**包括解析失败的技能和诊断信息**——会话目录会静默隐藏坏技能，这里能查到原因。 |
+| `skill_read` | 读取某个技能的 frontmatter、正文和资源文件列表，或读取其中一个资源文件。 |
+| `skill_create` | 写入 `<技能目录>/<name>/SKILL.md`，可同时写入 `references/`、`scripts/`、`assets/` 文件；写入前做校验，默认拒绝覆盖。 |
+| `skill_install` | 从 GitHub tree/blob URL、`owner/repo/path`、raw `SKILL.md` URL 或本地目录安装现成技能，落盘前先校验。 |
+| `skill_update` | 局部更新技能。未传的字段、未知的 frontmatter 键、未列出的文件都会保留；资源可增、可换、可删。 |
+| `skill_delete` | 把技能移入 `<技能目录>/.trash`，而不是直接删除；`confirm` 必须与技能名完全一致。 |
 
-Plus a runtime skill, **`skill-creator`**, registered by the plugin. It teaches the agent how to write a skill that actually works: trigger-first descriptions, imperative bodies, progressive disclosure into `references/`, the 8 KB tool-result limit, and a validate-before-you-ship checklist.
+此外，插件还会注册一个运行时技能 **`skill-creator`**，教 Agent 写出真正好用的技能：触发词前置的描述、祈使式正文、把长内容拆进 `references/`、8 KB 工具结果限制，以及「先校验再交付」的检查清单。
 
 ---
 
-## Install
+## 安装
 
-### Requirements
+### 前置条件
 
-- DeepSeek Harness Desktop (or any DSH deployment) with the default `standard` agent preset — it mounts `@deepseek-ai/dsh-skill-filesystem` and `@deepseek-ai/dsh-tool-skill`.
-- Node.js 20+ (the Host runtime qualifies).
+- DeepSeek Harness 桌面版（或其他 DSH 部署），使用默认 `standard` 预设——它已挂载 `@deepseek-ai/dsh-skill-filesystem` 与 `@deepseek-ai/dsh-tool-skill`。
+- Node.js 20+（Host 运行时已满足）。
 
-### Install the bundle
+### 安装 bundle
 
-Clone the repository, then ask the agent to install the local bundle:
+克隆仓库，然后让 Agent 安装本地 bundle：
 
 ```bash
 git clone https://github.com/ZTYZZ/dsh-skill-studio.git
 ```
 
 ```text
-Install the DSH bundle at /absolute/path/to/dsh-skill-studio using plugin_manager.
+用 plugin_manager 安装 /绝对路径/dsh-skill-studio 这个 DSH bundle。
 ```
 
-The equivalent direct call is `plugin_manager` with `action: "install_bundle"` and the absolute package directory as `target`. The manager links the checkout into the profile, so a later `git pull` updates the files on disk.
+等价操作是 `plugin_manager` 的 `install_bundle`，`target` 传包的绝对路径。管理器会把 checkout 链接进 profile，之后 `git pull` 会更新磁盘上的文件。
 
-### Updating
+### 更新
 
-Replacing the JavaScript of an installed package needs a fresh module generation: `git pull`, then restart the app or toggle the bundle off and on in **Settings → Plugins**. Creating skills never requires a restart — only updating the plugin code does.
+替换已安装插件的 JavaScript 需要新的模块代：`git pull` 之后重启应用，或在 **设置 → 插件** 里先禁用再启用 bundle。创建技能永远不需要重启——只有更新插件代码才需要。
 
-Verify from a fresh step:
+在下一步验证：
 
 ```text
 skill_list
 → 0 skills in /Users/you/.dsh/skills
 ```
 
-The six tools and the `skill-creator` catalog entry should be visible immediately.
+六个工具和 `skill-creator` 目录项应当立即可见。
 
-### Manual composition
+### 手动写入组合
 
-If you manage the profile by hand, add the bundle to the profile's `cordis.patch.yml` (after making the package resolvable in the profile):
+如果你手写 profile，可把 bundle 加进 `cordis.patch.yml`（前提是包已能被 profile 解析）：
 
 ```yaml
 - insert:
@@ -80,58 +82,73 @@ If you manage the profile by hand, add the bundle to the profile's `cordis.patch
       config: {}
 ```
 
-Prefer `plugin_manager`: it installs the package, records the bundle, and reports whether the composition actually applied.
+优先用 `plugin_manager`：它会安装依赖、登记 bundle，并明确告诉你组合是否真正生效。
 
 ---
 
-## Use it
+## 用法
 
-Ask in normal language; the agent routes the request through `skill-creator` and the tools:
+正常说话即可，Agent 会通过 `skill-creator` 和这些工具完成：
 
-- “Create a skill for our weekly analytics report.”
-- “Turn this checklist into a reusable skill, and make the description match how I phrase the request.”
-- “This skill is too long — move the API details into a reference file.”
-- “把刚才这套分镜流程沉淀成一个技能。”
-- “Install the release-notes skill from `ZTYZZ/dsh-skill-studio/examples/release-notes`.”
-- “把这个 GitHub 上的技能装进来：https://github.com/ZTYZZ/dsh-skill-studio/tree/main/examples/release-notes”
-- “Delete the old `weekly-report` skill.”
+- 「给我们的每周数据分析报告做一个技能。」
+- 「把这份检查清单做成可复用技能，描述要贴合我平时的说法。」
+- 「这个技能太长了，把 API 细节移到 reference 文件里。」
+- 「把刚才这套分镜流程沉淀成一个技能。」
+- 「从这个 GitHub 地址安装技能：https://github.com/ZTYZZ/dsh-skill-studio/tree/main/examples/release-notes」
+- 「删掉旧的 `weekly-report` 技能。」
 
-A useful pattern for the agent:
+推荐流程：
 
-1. `skill_list` — check what already exists.
-2. `skill_read` — inspect a near-match before deciding to extend it.
-3. `skill_create` — write the smallest skill that works.
-4. `skill_list` / `skill_read` — confirm validity and read the rendered body back.
-5. `skill_update` — iterate after a real trial run.
+1. `skill_list`——先查有没有现成的。
+2. `skill_read`——接近的先读，能扩展就不新建。
+3. `skill_create`——写「能跑通的最小技能」。
+4. `skill_list` / `skill_read`——确认有效，并回读渲染结果。
+5. `skill_update`——真跑一次后再迭代。
 
-### Install an existing skill
+### 安装现成技能
 
-`skill_install` accepts any of these:
+`skill_install` 支持：
 
-| Source | Example |
+| 来源 | 示例 |
 | --- | --- |
 | GitHub tree URL | `https://github.com/ZTYZZ/dsh-skill-studio/tree/main/examples/release-notes` |
 | GitHub blob URL | `https://github.com/ZTYZZ/dsh-skill-studio/blob/main/examples/release-notes/SKILL.md` |
-| Shorthand | `ZTYZZ/dsh-skill-studio/examples/release-notes` |
-| Raw `SKILL.md` | `https://raw.githubusercontent.com/.../SKILL.md` |
-| Local path | `/Users/you/work/skills/release-notes` (a directory with `SKILL.md`, or a single `.md` file) |
+| 简写 | `ZTYZZ/dsh-skill-studio/examples/release-notes` |
+| 原始 `SKILL.md` | `https://raw.githubusercontent.com/.../SKILL.md` |
+| 本地路径 | `/Users/you/work/skills/release-notes`（含 `SKILL.md` 的目录，或单个 `.md` 文件） |
 
-A GitHub directory is read through the Contents API, so `references/` and other text files come with it. A single raw file installs only `SKILL.md`. The unauthenticated GitHub API allows 60 requests per hour; for larger private bundles, clone locally and install from the path.
+GitHub 目录通过 Contents API 读取，所以 `references/` 等文本文件会一起装进来；单个 raw 文件只装 `SKILL.md`。未认证的 GitHub API 每小时限 60 次；更大的私有仓库建议先 clone，再从本地路径安装。
 
-Installs are validated and written through the same store as `skill_create`, so the catalog refreshes without a restart. The source URL, resolved location, and timestamp are recorded in `.skill-studio.json` inside the installed skill. Binary assets are skipped: skills installed this way are text-only.
+安装和 `skill_create` 走同一个存储层，先校验再落盘，目录照样自动刷新。来源 URL、解析位置和时间戳会记录在技能目录内的 `.skill-studio.json`。二进制资源会跳过：这种方式安装的技能只包含文本。
 
 ```text
-Install https://github.com/ZTYZZ/dsh-skill-studio/tree/main/examples/release-notes
-→ Installed skill "release-notes".
+安装 https://github.com/ZTYZZ/dsh-skill-studio/tree/main/examples/release-notes
+→ 已安装技能 "release-notes"。
   Source: https://github.com/ZTYZZ/dsh-skill-studio/tree/main/examples/release-notes
   Files: references/format.md
 ```
 
 ---
 
-## Skill format
+## 界面：技能工坊
 
-A skill is a directory bundle with a `SKILL.md`:
+打开 **设置 → 技能工坊**：
+
+- 实时读取技能目录，磁盘新增/删除立刻反映，不依赖 `/` 菜单的会话缓存；
+- 搜索、查看完整 `SKILL.md` 和资源文件；
+- 从 GitHub / 本地路径安装，或直接新建技能；
+- 删除前二次确认，移入 `.trash`；
+- 标出无效技能、`仅手动调用`、`不可 / 调用` 和外部安装来源。
+
+页面通过 `/skill-studio/api` 与 Host 通信：GET 只读，POST 只接受同端口 loopback `Origin`，避免其他网页跨站创建或删除技能。
+
+> DSH 自带的 `/` 技能菜单只显示当前会话可调用的技能，并按字母排序；它在磁盘新增/删除技能后不会立刻刷新（DSH 的已知限制）。技能工坊页面和 `skill_list` 工具不受这个缓存影响。
+
+---
+
+## 技能格式
+
+技能是一个带 `SKILL.md` 的目录包：
 
 ```text
 ~/.dsh/skills/
@@ -146,49 +163,49 @@ A skill is a directory bundle with a `SKILL.md`:
 ```markdown
 ---
 name: release-notes
-description: Write release notes from git history and merged pull requests. Use when the user asks for a changelog, release notes, a version summary, or 发布说明.
-whenToUse: The user asks what changed in a release.
+description: 根据 git 历史和已合并的 PR 生成发布说明。当用户要求 changelog、发布说明、版本总结时使用。
+whenToUse: 用户询问某个版本改了什么。
 ---
 
-# Release notes
+# 发布说明
 
-## Steps
+## 步骤
 
-1. Collect commits since the last tag.
-2. Group by user-visible area, not by commit type.
-3. Verify every claim against the diff.
+1. 收集上个 tag 以来的提交。
+2. 按用户可见的功能分组，而不是按 commit 类型。
+3. 每条结论都要对照 diff 验证。
 
-Read `references/format.md` when the output structure is ambiguous.
+输出结构不明确时，读 `references/format.md`。
 ```
 
-Rules the plugin enforces or warns about:
+插件强制或提示的规则：
 
-| Rule | Behavior |
+| 规则 | 行为 |
 | --- | --- |
-| `name` and `description` are required | Hard error |
-| `name` is kebab-case, ≤ 64 characters | Hard error |
-| `description` is one line, ≤ 1024 characters | Hard error above 1024; **warning above 500**, because the catalog renders at most 500 |
-| Body ≤ 7,500 characters | Warning; the standard preset trims tool results above 8,192 characters |
-| Body ≤ 60,000 characters | Hard error |
-| Resource paths are relative and stay inside the skill | Hard error on `..`, absolute paths, backslashes, or symlink traversal |
-| `SKILL.md` is not a resource | Hard error; pass `body` instead |
-| Deleting requires `confirm` equal to the name | Hard error otherwise |
-| A skill may already exist | Hard error unless `overwrite: true` |
+| `name`、`description` 必填 | 硬错误 |
+| `name` 为 kebab-case，≤ 64 字符 | 硬错误 |
+| `description` 单行，≤ 1024 字符 | 超过 1024 硬错误；**超过 500 警告**，因为目录最多渲染 500 |
+| 正文 ≤ 7500 字符 | 警告：标准预设会裁剪超过 8192 字符的工具结果 |
+| 正文 ≤ 60000 字符 | 硬错误 |
+| 资源路径必须相对且留在技能目录内 | `..`、绝对路径、反斜杠、符号链接穿越均为硬错误 |
+| `SKILL.md` 不能作为资源写入 | 硬错误；正文请用 `body` |
+| 删除必须传一致的 `confirm` | 否则硬错误 |
+| 技能已存在 | 硬错误，除非 `overwrite: true` |
 
-Optional frontmatter:
+可选 frontmatter：
 
-- `disable-model-invocation: true` — hide from the model catalog; keep it for explicit `/name` invocation.
-- `user-invocable: false` — remove the `/name` gesture; keep it model-invocable.
-- `metadata: { owner: platform, version: 2 }` — flat string/number/boolean map.
-- Unknown top-level keys are preserved verbatim by `skill_update`.
+- `disable-model-invocation: true`——从模型目录隐藏，只保留 `/name` 显式调用。
+- `user-invocable: false`——移除 `/name` 手势，仍可被模型调用。
+- `metadata: { owner: platform, version: 2 }`——扁平的字符串/数字/布尔映射。
+- 未知的顶层键会被 `skill_update` 原样保留。
 
-Flat `<name>.md` skills are discovered and can be read and updated, but `skill_create` always writes a directory bundle.
+扁平的 `<name>.md` 技能也能被发现、读取和更新，但 `skill_create` 总是写目录包。
 
 ---
 
-## Configuration
+## 配置
 
-The only setting is where skills live:
+唯一的配置是技能目录：
 
 ```yaml
 - insert:
@@ -198,79 +215,79 @@ The only setting is where skills live:
         skillsDir: /Users/you/work/skills
 ```
 
-| Field | Default | Meaning |
+| 字段 | 默认值 | 含义 |
 | --- | --- | --- |
-| `skillsDir` | `$DSH_HOME/skills` (usually `~/.dsh/skills`) | Directory scanned and written by the tools. `~` is expanded; relative paths resolve against the Host process working directory. |
+| `skillsDir` | `$DSH_HOME/skills`（通常是 `~/.dsh/skills`） | 工具扫描和写入的目录。支持 `~`；相对路径按 Host 进程工作目录解析。 |
 
-The default is the same user root the built-in filesystem provider scans, so skills created here are visible to every session and survive restarts. A custom `skillsDir` must also be added to the provider's `customSkillDirs` if you want the catalog to discover it — the tools will still work, but the skills would not be advertised.
-
----
-
-## How it works
-
-- The plugin is a Host bundle: `cordis.patch.yml` inserts one plugin row; `index.js` registers six tools on the global tool registry and one runtime skill on `ctx.skills`.
-- `skill_create`, `skill_install`, `skill_update`, and `skill_delete` write only under `skillsDir`, using atomic renames.
-- `skill_install` fetches the named source, validates the bundle, and hands it to the same store; it is the only code path that makes network requests.
-- The Harness's `dsh-skill-filesystem` provider watches the directory. Adding, editing, or removing `SKILL.md` invalidates its catalog, and `dsh-tool-skill` appends a replacement catalog to the session. That is why no restart is needed.
-- Validation happens before any write. The same rules are exported from `lib/frontmatter.js` and covered by unit tests.
-- No runtime dependencies and no background process. Only `skill_install` touches the network, and only the source you name.
+默认值就是内置文件系统 provider 扫描的用户根目录，所以这里创建的技能对所有会话可见，并且重启后仍在。若改到自定义目录，还需要把该目录加入 provider 的 `customSkillDirs`，否则工具能写，但技能不会被目录发现。
 
 ---
 
-## Safety
+## 工作原理
 
-- **Writes are jailed** to `skillsDir`. `..`, absolute paths, backslash paths, `SKILL.md`-as-resource, and writes through symlinks are rejected.
-- **Deletes are recoverable**: skills move to `<skillsDir>/.trash/<name>-<timestamp>`.
-- **Size limits** cap a skill file at 512 KiB, a resource at 256 KiB, and a create/install/update call at 1 MiB.
-- **Remote installs refuse loopback and private-network hosts** and speak only `http(s)`; a GitHub directory is fetched through the public Contents API.
-- **Skills are instructions**, not passive data. A skill created from untrusted content can influence future sessions. Review skills you did not author before keeping them; the `.trash` directory is not scanned, so removing a skill removes its influence from the catalog.
-- The plugin does not read environment secrets and does not execute skill scripts. `scripts/` files are stored, not run. Network access happens only during `skill_install`, for the source you provide.
+- 这是一个 Host bundle：`cordis.patch.yml` 插入一行插件；`index.js` 在全局工具注册表上注册六个工具，并通过 `ctx.skills` 注册一个运行时技能。
+- `skill_create`、`skill_install`、`skill_update`、`skill_delete` 只在 `skillsDir` 内写入，使用原子 rename。
+- `skill_install` 抓取指定来源、校验技能包，再交给同一个存储层；它是唯一会发起网络请求的代码路径。
+- Harness 的 `dsh-skill-filesystem` provider 监听该目录。新增、修改或删除 `SKILL.md` 会让它的目录缓存失效，`dsh-tool-skill` 随即追加一份替换目录。这就是无需重启的原因。
+- 所有校验发生在写入之前。规则集中在 `lib/frontmatter.js`，并有单元测试覆盖。
+- 零运行时依赖、无后台进程；只有 `skill_install` 会联网，而且只访问你指定的来源。
 
 ---
 
-## Development
+## 安全
+
+- **写入被限制**在 `skillsDir` 内。`..`、绝对路径、反斜杠、把 `SKILL.md` 当资源、以及通过符号链接写出目录，都会被拒绝。
+- **删除可恢复**：技能被移到 `<skillsDir>/.trash/<name>-<timestamp>`。
+- **大小限制**：技能文件 512 KiB、单个资源 256 KiB、单次创建/安装/更新调用 1 MiB。
+- **远程安装拒绝回环和私有网段地址**，只支持 `http(s)`；GitHub 目录通过公开 Contents API 读取。
+- **技能是指令，不是普通数据**。由不可信内容生成的技能可能影响之后的会话。不是自己写的技能，保留前先审阅；`.trash` 不会被扫描，移出目录即移出目录影响。
+- 插件不读取环境密钥、不执行技能脚本。`scripts/` 只存储，不运行。网络访问只发生在 `skill_install` 且只针对你提供的来源。
+
+---
+
+## 开发
 
 ```bash
-npm test        # node:test — frontmatter, store, path safety, trash, flat files
-npm run check   # node --check on every runtime module
+npm test        # node:test —— frontmatter、存储、路径安全、回收站、扁平技能
+npm run check   # 对所有运行时模块执行 node --check
 ```
 
-Layout:
+目录结构：
 
 ```text
-index.js              Host plugin: tools, config, runtime skill registration
-lib/frontmatter.js    YAML-subset parser/serializer, validation, limits
-lib/skills.js         Filesystem store: list/read/create/update/delete
-lib/install.js        Fetch and validate a skill from GitHub, a URL, or a local path
-lib/meta-skill.js     The skill-creator instructions registered at runtime
-test/                 Unit tests
-examples/             A ready-to-copy example skill
+index.js              Host 插件：工具、配置、运行时技能注册
+lib/frontmatter.js    YAML 子集解析/序列化、校验、限制
+lib/skills.js         文件系统存储：list/read/create/update/delete
+lib/install.js        从 GitHub、URL 或本地路径抓取并校验技能
+lib/meta-skill.js     运行时注册的 skill-creator 指令
+test/                 单元测试
+examples/             可直接复制的示例技能
 ```
 
-Design principles:
+设计原则：
 
-- Write the smallest skill that works; move detail into `references/`.
-- The catalog is a routing surface: description quality matters more than body length.
-- Never destroy user content. Preserve unknown frontmatter and unlisted files; trash instead of delete.
-- Keep the plugin dependency-free so it installs in any profile.
+- 写能跑通的最小技能，细节拆进 `references/`。
+- 技能目录是路由层：描述质量比正文长度更重要。
+- 不销毁用户内容。保留未知 frontmatter 与未列出的文件；删除用回收站。
+- 保持零依赖，任何 profile 都能装。
 
-See [CONTRIBUTING.md](CONTRIBUTING.md).
-
----
-
-## Roadmap
-
-- A Settings → Skills page (browse, create, and edit without asking the agent).
-- A curated skill index and `skill_search`, so finding a bundle does not require a URL.
-- A `skill_validate` tool for CI-style linting of a whole skills directory.
-- Optional project-scoped root (`.dsh/skills` in the current repository).
-
-Issues and pull requests are welcome.
+见 [CONTRIBUTING.md](CONTRIBUTING.md)。
 
 ---
 
-## License
+## 路线图
 
-MIT © 2026 ZTYZZ. See [LICENSE](LICENSE).
+- Settings → Skills 页面（无需通过 Agent，直接浏览、创建、编辑）。
+- 技能索引与 `skill_search`：不靠 URL 也能找到技能。
+- `skill_validate`：对整个技能目录做 CI 式 lint。
+- 可选的仓库级根目录（当前仓库的 `.dsh/skills`）。
 
-[中文说明](README.zh.md)
+欢迎 issue 和 PR。
+
+---
+
+## 许可证
+
+MIT © 2026 ZTYZZ。见 [LICENSE](LICENSE)。
+
+[English](README.en.md)
