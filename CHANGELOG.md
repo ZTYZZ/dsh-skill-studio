@@ -2,6 +2,13 @@
 
 All notable changes to this project are documented here.
 
+## 1.3.0 — 2026-11-06
+
+- Add a read-only external skill provider that exposes other agents' skill directories to DSH. The default root is `~/.codex/skills`, so Codex skills appear in every session catalog without copying.
+- Directories are watched; edits in the other tool invalidate the catalog. Resource bases point at the original directory, so `references/` and scripts resolve in place.
+- Configure more roots (for example `~/.claude/skills`) with `externalSkillDirs`; set `[]` to disable.
+- Document the difference between DSH roots and other agents' roots.
+
 ## 1.2.0 — 2026-11-06
 
 - New Skill Studio settings page (Settings → 技能工坊 / Skill Studio): live skill list, search, detail view, install, create, and delete with confirmation.

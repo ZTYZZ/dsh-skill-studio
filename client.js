@@ -13,6 +13,7 @@ window.__ModuleLoader__.load({
       title: '技能工坊',
       subtitle: '浏览、安装和创作可复用的 Agent 技能。安装后会自动进入所有会话的技能目录。',
       rootLabel: '技能目录',
+      externalNote: '其他 Agent（如 Codex）目录里的技能只读接入会话目录，由原工具管理，不在此页显示。',
       refresh: '刷新',
       refreshTitle: '重新读取技能目录',
       install: '安装技能',
@@ -76,6 +77,7 @@ window.__ModuleLoader__.load({
       title: 'Skill Studio',
       subtitle: 'Browse, install, and author reusable agent skills. New skills enter every session catalog automatically.',
       rootLabel: 'Skills directory',
+      externalNote: 'Skills mounted from other agents (for example Codex) join the session catalog but are managed by their original tool, so they are not listed here.',
       refresh: 'Refresh',
       refreshTitle: 'Reload the skills directory',
       install: 'Install skill',
@@ -393,6 +395,7 @@ window.__ModuleLoader__.load({
           h('h1', { className: 'ss-title' }, S.title),
           h('p', { className: 'ss-sub' }, S.subtitle),
           h('p', { className: 'ss-root' }, `${S.rootLabel}: ${data?.root ?? '…'}`),
+          h('p', { className: 'ss-external-note' }, S.externalNote),
         ),
         h(
           'button',
@@ -689,6 +692,7 @@ window.__ModuleLoader__.load({
 .ss-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 18px; }
 .ss-title { margin: 0; font-size: 21px; line-height: 1.25; font-weight: 650; letter-spacing: -0.015em; }
 .ss-sub { margin: 6px 0 0; color: var(--dsw-alias-label-secondary); font-size: 12.5px; line-height: 1.6; max-width: 620px; }
+.ss-external-note { margin: 6px 0 0; color: var(--dsw-alias-label-secondary); font-size: 11px; line-height: 1.5; max-width: 620px; }
 .ss-root { margin: 8px 0 0; color: var(--dsw-alias-state-idle-primary); font: 11px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace; word-break: break-all; }
 .ss-toolbar { display: flex; align-items: center; gap: 8px; margin: 20px 0 12px; }
 .ss-search { flex: 1; min-width: 0; }

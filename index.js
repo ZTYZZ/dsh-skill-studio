@@ -1,6 +1,7 @@
 import os from 'node:os';
 import path from 'node:path';
 import { readFile } from 'node:fs/promises';
+import { createExternalProvider, resolveExternalDirs } from './lib/external.js';
 import { installFromSource } from './lib/install.js';
 import { SKILL_CREATOR } from './lib/meta-skill.js';
 import { createSkillStore, normalizeResourcePath } from './lib/skills.js';
@@ -13,6 +14,7 @@ const TOOL_PREFIX = 'skill';
 export function apply(ctx, rawConfig = {}) {
   const skillsDir = resolveSkillsDir(rawConfig);
   const store = createSkillStore({ root: skillsDir });
+  const externalDirs = resolveExternalDirs(rawConfig);
 
   const register = (definition) => ctx.effect(() => ctx.tools.register(definition));
 
@@ -36,6 +38,11 @@ export function apply(ctx, rawConfig = {}) {
         content: SKILL_CREATOR.content,
       }),
     );
+    if (externalDirs.length > 0) {
+      skillsCtx.effect(() =>
+        skillsCtx.skills.registerProvider((control) => createExternalProvider({ dirs: externalDirs, control })),
+      );
+    }
   });
 }
 

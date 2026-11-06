@@ -219,8 +219,35 @@ The only setting is where skills live:
 | Field | Default | Meaning |
 | --- | --- | --- |
 | `skillsDir` | `$DSH_HOME/skills` (usually `~/.dsh/skills`) | Directory scanned and written by the tools. `~` is expanded; relative paths resolve against the Host process working directory. |
+| `externalSkillDirs` | `["~/.codex/skills"]` | Other agents' skill roots, exposed read-only; `[]` disables. |
 
 The default is the same user root the built-in filesystem provider scans, so skills created here are visible to every session and survive restarts. A custom `skillsDir` must also be added to the provider's `customSkillDirs` if you want the catalog to discover it — the tools will still work, but the skills would not be advertised.
+
+### Skills from other agents
+
+DSH scans only its own roots: `~/.dsh/skills`, `~/.agents/skills`, and the project's `.dsh/skills` and `.agents/skills`. Codex's `~/.codex/skills`, Claude's `~/.claude/skills`, and Cursor's `.cursor/skills-cursor` are **not loaded automatically** — different directory conventions, not broken skills.
+
+Since 1.3.0 the plugin registers a read-only provider that exposes `~/.codex/skills` by default:
+
+- No copying: skills are read in place, so edits in Codex show up in DSH;
+- They enter every session catalog, and `references/` still resolve against the original directory;
+- A directory watcher refreshes the catalog without a restart;
+- Add more roots (Claude, WorkBuddy, Gemini, …) through `externalSkillDirs`;
+- Set `[]` to disable.
+
+```yaml
+- insert:
+    - id: skill-studio
+      name: dsh-skill-studio
+      config:
+        externalSkillDirs:
+          - ~/.codex/skills
+          - ~/.claude/skills
+```
+
+Symlinked entries under `~/.claude/skills` are followed only when their target exists; broken links are skipped. The Skill Studio page manages only `skillsDir`; externally mounted skills stay managed by their original tool.
+
+> Only add directories you trust: every skill in them is advertised to sessions.
 
 ---
 

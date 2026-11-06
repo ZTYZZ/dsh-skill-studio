@@ -218,8 +218,35 @@ whenToUse: 用户询问某个版本改了什么。
 | 字段 | 默认值 | 含义 |
 | --- | --- | --- |
 | `skillsDir` | `$DSH_HOME/skills`（通常是 `~/.dsh/skills`） | 工具扫描和写入的目录。支持 `~`；相对路径按 Host 进程工作目录解析。 |
+| `externalSkillDirs` | `["~/.codex/skills"]` | 其他 Agent 的技能目录，只读接入；`[]` 关闭。 |
 
 默认值就是内置文件系统 provider 扫描的用户根目录，所以这里创建的技能对所有会话可见，并且重启后仍在。若改到自定义目录，还需要把该目录加入 provider 的 `customSkillDirs`，否则工具能写，但技能不会被目录发现。
+
+### 其他 Agent 的技能
+
+DSH 默认只扫描自己的根目录：`~/.dsh/skills`、`~/.agents/skills`，以及项目里的 `.dsh/skills`、`.agents/skills`。Codex 的 `~/.codex/skills`、Claude 的 `~/.claude/skills`、Cursor 的 `.cursor/skills-cursor` **不会自动加载**——这是目录约定不同，不是技能坏了。
+
+从 1.3.0 起，插件会注册一个只读 provider，默认把 `~/.codex/skills` 接入 DSH：
+
+- 不复制文件，直接读原目录；在 Codex 里改技能，DSH 这边同步看到；
+- 技能进入所有会话的技能目录，`references/` 相对路径仍指向原目录；
+- 目录变化会触发刷新，不需要重启；
+- 其他目录（Claude、WorkBuddy、Gemini 等）用 `externalSkillDirs` 追加；
+- 设为 `[]` 可关闭。
+
+```yaml
+- insert:
+    - id: skill-studio
+      name: dsh-skill-studio
+      config:
+        externalSkillDirs:
+          - ~/.codex/skills
+          - ~/.claude/skills
+```
+
+`~/.claude/skills` 里如果是指向 `~/.agents/skills/...` 的符号链接，链接目标必须真实存在，否则会被跳过。技能工坊页面只管理 `skillsDir`；接入目录里的技能由原工具管理，只读出现。
+
+> 只接入你信任的目录：目录里的所有技能都会进入会话目录。
 
 ---
 
