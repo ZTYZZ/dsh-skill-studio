@@ -1,0 +1,52 @@
+{
+  "name": "dsh-skill-studio",
+  "version": "1.0.0",
+  "description": "Create, read, update, list, and delete reusable agent skills from a DeepSeek Harness session.",
+  "type": "module",
+  "license": "MIT",
+  "author": "ZTYZZ",
+  "homepage": "https://github.com/ZTYZZ/dsh-skill-studio#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ZTYZZ/dsh-skill-studio.git"
+  },
+  "bugs": {
+    "url": "https://github.com/ZTYZZ/dsh-skill-studio/issues"
+  },
+  "keywords": [
+    "deepseek-harness",
+    "dsh",
+    "dsh-plugin",
+    "skills",
+    "skill-creator",
+    "agent"
+  ],
+  "exports": {
+    ".": "./index.js",
+    "./locale/*.json": "./locale/*.json",
+    "./icon": "./icon.svg",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "index.js",
+    "lib/*.js",
+    "cordis.patch.yml",
+    "locale/*.json",
+    "icon.svg",
+    "README.md",
+    "README.zh.md",
+    "LICENSE"
+  ],
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  },
+  "scripts": {
+    "test": "node --test",
+    "check": "node --check index.js && node --check lib/frontmatter.js && node --check lib/skills.js && node --check lib/meta-skill.js"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

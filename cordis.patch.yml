@@ -1,0 +1,9 @@
+# Skill Studio — agent-facing tools for authoring reusable skills.
+#
+# The bundle inserts one Host plugin row into the profile. The plugin reads the
+# `skillsDir` config field (default: $DSH_HOME/skills) and registers the
+# skill_list / skill_read / skill_create / skill_update / skill_delete tools.
+- insert:
+    - id: skill-studio
+      name: dsh-skill-studio
+      config: {}
