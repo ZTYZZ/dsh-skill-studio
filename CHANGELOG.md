@@ -2,6 +2,12 @@
 
 All notable changes to this project are documented here.
 
+## 1.5.1 — 2026-11-07
+
+- Fix Antigravity skill discovery: `skills.json` requires absolute paths; the installer now expands `~` before writing. Antigravity was logging `must be an absolute path` and only the plugin skill appeared.
+- The installer replaces its own old `~` entries instead of leaving duplicates.
+- Add a CI check that installs into a temporary HOME and asserts absolute paths in `skills.json`.
+
 ## 1.5.0 — 2026-11-07
 
 - Add an Antigravity (agy) adapter: `antigravity/install.mjs` registers every known agent skill root in `~/.gemini/config/skills.json` and installs a `skill-studio` plugin under `~/.gemini/config/plugins/skill-studio`.

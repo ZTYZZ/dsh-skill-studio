@@ -5,6 +5,9 @@
 
 ## 它做什么
 
+> Antigravity 要求 `skills.json` 里的路径是**绝对路径**，它不展开 `~`。`install.mjs` 会自动展开；
+> 不要手写 `~/.codex/skills` 这类路径。
+
 1. 写入 `~/.gemini/config/skills.json`，把以下目录注册为 Antigravity 的技能来源：
 
    - `~/.codex/skills`

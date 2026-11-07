@@ -26,6 +26,12 @@ const force = args.has('--force');
 const uninstall = args.has('--uninstall');
 const dryRun = args.has('--dry-run');
 
+function absolutePath(input) {
+  if (input === '~') return home;
+  if (input.startsWith('~/')) return path.join(home, input.slice(2));
+  return path.resolve(input);
+}
+
 async function readCurrent() {
   if (!existsSync(skillsJson)) return { entries: [] };
   const text = await readFile(skillsJson, 'utf8');
@@ -43,7 +49,10 @@ if (uninstall) {
     await rm(pluginTarget, { recursive: true, force: true });
     const current = await readCurrent();
     const ours = new Set(template.entries.map((entry) => entry.path));
-    current.entries = current.entries.filter((entry) => !ours.has(entry.path));
+    const oursAbsolute = new Set(template.entries.map((entry) => absolutePath(entry.path)));
+    current.entries = current.entries.filter(
+      (entry) => !ours.has(entry.path) && !oursAbsolute.has(absolutePath(entry.path)),
+    );
     await writeFile(skillsJson, `${JSON.stringify(current, null, 2)}\n`, 'utf8');
     console.log('Removed the Skill Studio plugin and its skill entries.');
   }
@@ -76,9 +85,16 @@ const current = await readCurrent();
 if (existsSync(skillsJson)) {
   await cp(skillsJson, `${skillsJson}.bak-${Date.now()}`);
 }
-const byPath = new Map(current.entries.map((entry) => [entry.path, entry]));
+const ours = new Set(template.entries.map((entry) => entry.path));
+const oursAbsolute = new Set(template.entries.map((entry) => absolutePath(entry.path)));
+const byPath = new Map(
+  current.entries
+    .filter((entry) => !ours.has(entry.path) && !oursAbsolute.has(absolutePath(entry.path)))
+    .map((entry) => [entry.path, entry]),
+);
 for (const entry of template.entries) {
-  if (!byPath.has(entry.path)) byPath.set(entry.path, entry);
+  const normalized = { ...entry, path: absolutePath(entry.path) };
+  if (!byPath.has(normalized.path)) byPath.set(normalized.path, normalized);
 }
 current.entries = [...byPath.values()];
 await writeFile(skillsJson, `${JSON.stringify(current, null, 2)}\n`, 'utf8');

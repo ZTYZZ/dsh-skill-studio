@@ -26,3 +26,9 @@ jobs:
         run: npm run check
       - name: Antigravity adapter dry run
         run: node antigravity/install.mjs --dry-run
+      - name: Antigravity absolute paths
+        run: |
+          tmp=$(mktemp -d)
+          HOME="$tmp" node antigravity/install.mjs >/dev/null
+          grep -q "$tmp/.codex/skills" "$tmp/.gemini/config/skills.json"
+          echo "skills.json uses absolute paths" 

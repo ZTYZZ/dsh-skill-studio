@@ -1,6 +1,6 @@
 {
   "name": "dsh-skill-studio",
-  "version": "1.5.0",
+  "version": "1.5.1",
   "description": "Create, install, and manage reusable agent skills from a DeepSeek Harness session, with a settings UI.",
   "type": "module",
   "license": "MIT",
