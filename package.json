@@ -1,6 +1,6 @@
 {
   "name": "dsh-skill-studio",
-  "version": "1.4.0",
+  "version": "1.5.0",
   "description": "Create, install, and manage reusable agent skills from a DeepSeek Harness session, with a settings UI.",
   "type": "module",
   "license": "MIT",
@@ -37,7 +37,8 @@
     "icon.svg",
     "LICENSE",
     "README.md",
-    "README.en.md"
+    "README.en.md",
+    "antigravity"
   ],
   "dsh": {
     "bundle": {
@@ -50,7 +51,7 @@
   },
   "scripts": {
     "test": "node --test",
-    "check": "node --check index.js && node --check client.js && node --check lib/frontmatter.js && node --check lib/skills.js && node --check lib/install.js && node --check lib/external.js && node --check lib/meta-skill.js"
+    "check": "node --check index.js && node --check client.js && node --check lib/frontmatter.js && node --check lib/skills.js && node --check lib/install.js && node --check lib/external.js && node --check lib/meta-skill.js && node --check antigravity/install.mjs && node --check antigravity/plugin/skills/skill-studio/scripts/skill-studio.mjs"
   },
   "engines": {
     "node": ">=20"

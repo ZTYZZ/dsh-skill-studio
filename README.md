@@ -36,6 +36,7 @@ DSH 原生已经会「用」技能：`skill` 工具负责加载，会话目录�
 | 查技能为什么没出现 | 「列出技能，看看哪个坏了」 | `skill_list` 显示错误、警告和路径 |
 | 删掉试用的技能 | 「删掉 xxx 技能」 | `skill_delete` 移入 `.trash`，可恢复 |
 | 在浏览器里管理 | 设置 → 技能工坊 | 搜索、查看、安装、新建、删除 |
+| 在 Antigravity（agy）里用 | 运行 `node antigravity/install.mjs` | 注册 `skills.json` + 安装 `skill-studio` 插件 |
 
 ```text
 你：把我们发布说明的流程沉淀成一个技能。
@@ -114,6 +115,26 @@ skill_list
 优先用 `plugin_manager`：它会安装依赖、登记 bundle，并明确告诉你组合是否真正生效。
 
 ---
+
+## Antigravity（agy）
+
+同一套技能可以接到 Antigravity：
+
+```bash
+node antigravity/install.mjs
+```
+
+然后重启 Antigravity。它会：
+
+- 写入 `~/.gemini/config/skills.json`，把 Codex / Claude / Cursor / Grok / Gemini /
+  WorkBuddy / Hub / DSH 的技能注册给 Antigravity；
+- 安装一个 `skill-studio` 插件（`~/.gemini/config/plugins/skill-studio`），提供
+  “列出 / 查看 / 安装本机技能”的技能。
+
+在 **Settings → Customizations / Skills** 查看，或直接说 **“列出本机技能”**。
+中文标题优先、英文技术名在后的列表由 `skill-studio` 技能输出。
+
+详见 [antigravity/README.md](antigravity/README.md)。
 
 ## 用法
 

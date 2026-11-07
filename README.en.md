@@ -36,6 +36,7 @@ In one sentence: **native owns the runtime; Skill Studio owns the lifecycle.** T
 | Find a missing skill | “List the skills and show what is broken.” | `skill_list` reports errors, warnings, paths |
 | Delete a trial skill | “Delete the xxx skill.” | `skill_delete` moves it to `.trash` |
 | Manage in the browser | Settings → Skill Studio | Search, view, install, create, delete |
+| Use it in Antigravity (agy) | Run `node antigravity/install.mjs` | Registers `skills.json` + installs the `skill-studio` plugin |
 
 ```text
 You: Turn our release-notes process into a skill.
@@ -114,6 +115,26 @@ If you manage the profile by hand, add the bundle to the profile's `cordis.patch
 Prefer `plugin_manager`: it installs the package, records the bundle, and reports whether the composition actually applied.
 
 ---
+
+## Antigravity (agy)
+
+The same skills can be mounted in Antigravity:
+
+```bash
+node antigravity/install.mjs
+```
+
+Then restart Antigravity. It:
+
+- writes `~/.gemini/config/skills.json`, registering Codex / Claude / Cursor / Grok /
+  Gemini / WorkBuddy / Hub / DSH skills;
+- installs a `skill-studio` plugin at `~/.gemini/config/plugins/skill-studio` with a
+  skill that lists, reads, and installs local skills.
+
+Open **Settings → Customizations / Skills**, or say **“list my skills.”** The
+Chinese-title-first list is produced by the `skill-studio` skill.
+
+See [antigravity/README.md](antigravity/README.md).
 
 ## Use it
 

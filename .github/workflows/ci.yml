@@ -24,3 +24,5 @@ jobs:
         run: npm test
       - name: Syntax check
         run: npm run check
+      - name: Antigravity adapter dry run
+        run: node antigravity/install.mjs --dry-run

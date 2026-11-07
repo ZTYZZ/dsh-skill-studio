@@ -1,0 +1,17 @@
+{
+  "entries": [
+    {
+      "path": "~/.codex/skills",
+      "exclude": ["^\\.system$", "^codex-primary-runtime$"]
+    },
+    { "path": "~/.claude/skills" },
+    { "path": "~/.cursor/skills-cursor" },
+    { "path": "~/.grok/bundled/skills" },
+    { "path": "~/.gemini/antigravity/skills" },
+    { "path": "~/.workbuddy/skills" },
+    { "path": "~/.hub/skills" },
+    { "path": "~/.dsh/skills" },
+    { "path": "~/.agents/skills" },
+    { "path": "~/.gemini/config/skills" }
+  ]
+}

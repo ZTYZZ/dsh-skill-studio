@@ -2,6 +2,13 @@
 
 All notable changes to this project are documented here.
 
+## 1.5.0 — 2026-11-07
+
+- Add an Antigravity (agy) adapter: `antigravity/install.mjs` registers every known agent skill root in `~/.gemini/config/skills.json` and installs a `skill-studio` plugin under `~/.gemini/config/plugins/skill-studio`.
+- The agy `skill-studio` skill lists 84 local skills (Chinese H1 first, English technical name second), reads any skill, and installs from a local directory, GitHub tree URL, or raw `SKILL.md`.
+- `skills.json` exposes Codex, Claude, Cursor, Grok, Gemini, WorkBuddy, Hub, DSH, and the Antigravity install root.
+- Add `/antigravity/README.md`, a dry-run install mode, and an uninstall mode.
+
 ## 1.4.0 — 2026-11-06
 
 - Auto-discover every known agent skill root: Codex, Claude, WorkBuddy, Hub, Gemini, Cursor, Grok, plus generic `<agent>/skills` directories under the home directory.
